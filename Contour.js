@@ -18,9 +18,13 @@ class Contour  {
 
     SetUp ( array ) {
 
+        console.log("Setting up Contour. Array size: " + array.length);
     }
 
     ThreadContours ( array,  contLevel ) {
+
+        console.log("Threading Contour. Array size: " + array.length +
+                            "  contour level: " + contLevel.toFixed(1));
 
     }
 }
