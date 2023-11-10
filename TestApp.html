@@ -1,3 +1,13 @@
+<!--
+* Copyright (c) 1986-2023 Ric Wright
+*
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the some license or other...
+*
+* Contributors:
+*     Ric Wright - initial implementation
+-->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,7 +16,7 @@
     <script src="Contour.js"></script>
 </head>
 <body>
-    <!-- canvas id="myCanvas" width="200" height="100" / -->
+
 </body>
 </html>
 
@@ -17,7 +27,8 @@
     let array = [
         [1, 3, 1],
         [0, 5, 1],
-        [1, 1, 3]
+        [1, 1, 3],
+        [0, 0, 0]
     ];
 
     initCanvas();
@@ -34,13 +45,26 @@
     }
 
     function drawGrid ( array ) {
+        if (canvas.width >= canvas.height) {
+            gridHeight = 0.9 * canvas.height;
+            margHeight = 0.1 * canvas.height;
+            gridWidth = gridHeight * array.length / array[0].length;
+            margWidth = (canvas.width - gridWidth) / 2.0;
 
-        var c = document.getElementById("myCanvas");
-        var ctx = c.getContext("2d");
-        ctx.moveTo(0, 0);
-        ctx.lineTo(200, 100);
+        } else {
+
+            gridWidth = 0.9 * canvas.width;
+            margWidth = 0.1 * canvas.width;
+            gridHeight = gridWidth * array.length / array[0].length;
+            margWHeight = (canvas.height - gridHeight) / 2.0;
+        }
+
+        var ctx = canvas.getContext("2d");
+        ctx.lineWidth = "4";
+        ctx.strokeStyle = "green";
+        ctx.beginPath();
+        ctx.rect( margWidth, margHeight, gridWidth, gridHeight );
         ctx.stroke();
-
     }
 
     function drawContours (array, contLevel ) {
@@ -50,7 +74,7 @@
 
         contour.SetUp( array );
 
-        contour.ThreadContours( array, 2.0 );
+        contour.ThreadContours( array, contLevel );
 
         var elapsed = (performance.now() - startTime)/1000.0;
         console.log("Contour complete! elapsed: " +  elapsed.toFixed(3)  );

@@ -18,7 +18,7 @@ class Contour  {
 
     SetUp ( array ) {
 
-        console.log("Setting up Contour. Array size: " + array.length);
+        console.log("Setting up Contour. Array size: " + array.length + " subLen: " +  array[0].length);
     }
 
     ThreadContours ( array,  contLevel ) {
@@ -28,3 +28,4 @@ class Contour  {
 
     }
 }
+
