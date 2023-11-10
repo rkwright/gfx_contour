@@ -6,26 +6,53 @@
     <script src="Contour.js"></script>
 </head>
 <body>
-
+    <!-- canvas id="myCanvas" width="200" height="100" / -->
 </body>
 </html>
 
 <script>
 
-    var startTime = performance.now();
-
+    var canvas;
+    let contLevel = 2;
     let array = [
         [1, 3, 1],
         [0, 5, 1],
         [1, 1, 3]
     ];
 
-    var contour = new Contour();
+    initCanvas();
+    drawGrid( array );
+    drawContours( array, contLevel );
 
-    contour.SetUp( array );
+    //========= Local Functions ==========================
+    function initCanvas() {
+        canvas = document.createElement('canvas');
+        canvas.id = "myCanvas";
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        document.body.appendChild(canvas);
+    }
 
-    contour.ThreadContours( array, 2.0 );
+    function drawGrid ( array ) {
 
-    var elapsed = (performance.now() - startTime)/1000.0;
-    console.log("Contour complete! elapsed: " +  elapsed.toFixed(3)  );
+        var c = document.getElementById("myCanvas");
+        var ctx = c.getContext("2d");
+        ctx.moveTo(0, 0);
+        ctx.lineTo(200, 100);
+        ctx.stroke();
+
+    }
+
+    function drawContours (array, contLevel ) {
+        var startTime = performance.now();
+
+        var contour = new Contour();
+
+        contour.SetUp( array );
+
+        contour.ThreadContours( array, 2.0 );
+
+        var elapsed = (performance.now() - startTime)/1000.0;
+        console.log("Contour complete! elapsed: " +  elapsed.toFixed(3)  );
+    }
 </script>
