@@ -10,7 +10,7 @@
 class Contour  {
 
     //--- constants ---
-    REVISION = '1.0.0';
+    REVISION = '0.1.0';
 
     //--- class methods ---
     constructor () {

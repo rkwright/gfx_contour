@@ -13,6 +13,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Contour Test</title>
+    <script src="../gfx_math/matrix.js" type="text/javascript"></script>
     <script src="Contour.js"></script>
 </head>
 <body>
@@ -46,22 +47,33 @@
 
     function drawGrid ( array ) {
         if (canvas.width >= canvas.height) {
-            gridHeight = 0.9 * canvas.height;
+            gridHeight = 0.8 * canvas.height;
             margHeight = 0.1 * canvas.height;
             gridWidth = gridHeight * array.length / array[0].length;
             margWidth = (canvas.width - gridWidth) / 2.0;
 
         } else {
 
-            gridWidth = 0.9 * canvas.width;
+            gridWidth = 0.8 * canvas.width;
             margWidth = 0.1 * canvas.width;
             gridHeight = gridWidth * array.length / array[0].length;
-            margWHeight = (canvas.height - gridHeight) / 2.0;
+            margHeight = (canvas.height - gridHeight) / 2.0;
         }
+
+        ///var contour0 = new Contour();
+
+        //var	mat = new Matrix();
+        //var result = mat.transform(2,3);
 
         var ctx = canvas.getContext("2d");
         ctx.lineWidth = "4";
         ctx.strokeStyle = "green";
+
+        ctx.beginPath();
+        ctx.rect( 0, 0, canvas.width, canvas.height );
+        ctx.stroke();
+
+        ctx.strokeStyle = "red";
         ctx.beginPath();
         ctx.rect( margWidth, margHeight, gridWidth, gridHeight );
         ctx.stroke();
