@@ -1,12 +1,15 @@
-/**
+/**-
+ * Copyright (c) 1986-2023 Richard K. Wright. All rights reserved.
+ *
+ * This work is licensed under the terms of the MIT license.
+ * For a copy, see <https://opensource.org/licenses/MIT>.
+ *
+ * Contour.js
  *
  */
 
 'use strict';
 
-/**
- * Constants
- */
 class Contour  {
 
     //--- constants ---
