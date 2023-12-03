@@ -13,13 +13,9 @@
 //--- Contour class constants ---
 const DELTA_DIV = 10000;
 
-const MIN_FLOAT= -1e37;
-const MAX_FLOAT = 1e37;
-
 const CLOCKWISE = 1
 const CLOSED = 0;
 const COUNTERCLOCKWISE = -1;
-const UNDEFINED = 254;
 
 const MAX_LOOP_LIMIT = 255;
 
@@ -50,16 +46,14 @@ class ContourLimit {
     bot0 = MAX_LOOP_LIMIT;
     top1 = MAX_LOOP_LIMIT;
     bot1 = MAX_LOOP_LIMIT;
-    CW0  = UNDEFINED; 		   // sign of slope of limb intersected by vector
-    CW1  = UNDEFINED;
+    CW0  = CLOSED; 		   // sign of slope of limb intersected by vector
+    CW1  = CLOSED;
 }
 
 /**
  *
- *
  *  This class defines the upper and lower limits of the contours for each
  *   cell, where
- *
  *                              for a given cell, whose actual data point
  *                              is represented by the '*'
  *          l   +------+        limb = 1 is the left-side of the cell,
@@ -70,7 +64,6 @@ class ContourLimit {
  *               limb = 0
  *
  *           --> increasing x
- *
  *
  *  Note on the slope parameter:  the parm represents the sign of the
  *  slope along the direction of travel for the vector, where it
@@ -106,18 +99,13 @@ class Contour {
     mf; 			// last index in Y
     minZ;
     maxZ;
-    ccwKnt; 		// accumulates the CCW/CW count
     nCont;			// number of contours to be found
 
     bounds = [];            // contouring limits for each cell - ContourLimits
     contourVectors = [];    // ContourVector
     contLevels = [];        // float, contour limits
 
-    /**
-     * Required constructor, currently unused
-     */
-    constructor() {
-    }
+    // The constructor is currently unused
 
     /**
      *
@@ -133,9 +121,18 @@ class Contour {
     /**
      *
      * @param array
-     * @param contInterval
      */
-    allocBounds ( array, contInterval ) {
+    setupContours( array ) {
+       this.allocBounds ( array );
+       this.setContLevels( array, 2.0 );
+       this.initFlags( array );
+    }
+
+    /**
+     *
+     * @param array
+     */
+    allocBounds ( array ) {
         this.mf = array.length;
         this.nf = array[0].length;
         this.ns = 0;
@@ -154,12 +151,13 @@ class Contour {
      *
      * @param array
      */
-    setContLevels ( array ) {
+    setContLevels ( array, contInterval ) {
 
         // find max and min in the array
-        this.minZ = MAX_FLOAT;
-        this.maxZ = -MAX_FLOAT;
+        this.minZ = Number.MAX_VALUE;
+        this.maxZ = -Number.MAX_VALUE;
 
+        // Note: Need to compute minZ as func(contLevels) rather than absolute
         for ( let i = this.ms; i < this.mf; i++ ) {
             for ( let j = this.ns; j < this.nf; j++ ) {
                 this.minZ = Math.min(this.minZ, array[i][j]);
@@ -177,15 +175,15 @@ class Contour {
     }
 
     /**
-     * @param array
-     *
      * Initialize the flag array, setting the upper and lower bounds
      * for the contours for each segment as well as the winding direction
+     *
+     * @param array
      */
     initFlags ( array ) {
         let t, b;
         let u, v;
-        let upLim = this.contLevels.length - 1;
+        let uplim = this.contLevels.length - 1;
 
         for (let i = this.ms; i < this.mf; i++) {
             for (let j = this.ns; j < this.nf; j++) {
@@ -194,8 +192,6 @@ class Contour {
                 u = array[i][j];
 
                 if (j < (this.nf - 1)) {
-                    v = array[i][j + 1];
-
                     //  Here we set the slope-sign for this horizontal segment.
                     //  We set it in terms of the X-direction vector which will intersect
                     //  this edge when the vector is going in the direction of increasing X. It
@@ -203,58 +199,59 @@ class Contour {
                     //  of decreasing X
                     bound.CW0 = (v < u) ? COUNTERCLOCKWISE : CLOCKWISE;
 
-                    if (v > u) {
-                        t = upLim;
-                        while (t > 0 && this.contLevels[t] > v) t--;
+                    let TB = this.getTB( array[i][j + 1], u, uplim);
 
-                        b = 0;
-                        while (b <= t && this.contLevels[b] <= u) b++;
-                    } else {
-                        t = upLim;
-                        while (t > 0 && this.contLevels[t] > u) t--;
-
-                        b = 0;
-                        while (b <= t && this.contLevels[b] <= v) b++;
-                    }
-
-                    if (t >= b) {
-                        bound.top0 = t;
-                        bound.bot0 = b;
-                    }
+                    bound.top0 = TB.t;
+                    bound.bot0 = TB.b;
                 }
 
                 if (i < (this.mf - 1)) {
-                    v = array[i + 1][j];
-
                     // Now we set the slope-sign for this vertical segment.  We set
                     // it for the vector that will intersect this edge when the
                     // vector is going in the direction of increasing Y. It will
                     // have the opposite sign if the vector is moving in
                     // the direction of decreasing Y.
-
                     bound.CW1 = (v > u) ? COUNTERCLOCKWISE : CLOCKWISE;
 
-                    if (v > u) {
-                        t = upLim;
-                        while (t > 0 && this.contLevels[t] > v) t--;
+                    let TB = this.getTB( array[i + 1][j], u, uplim);
 
-                        b = 0;
-                        while (b <= t && this.contLevels[b] <= u) b++;
-                    } else {
-                        t = upLim;
-                        while (t > 0 && this.contLevels[t] > u) t--;
-
-                        b = 0;
-                        while (b <= t && this.contLevels[b] <= v) b++;
-                    }
-
-                    if (t >= b) {
-                        bound.top1 = t;
-                        bound.bot1 = b;
-                    }
+                    bound.top1 = TB.t;
+                    bound.bot1 = TB.b;
                 }
             }
         }
+
+        for ( let i = this.ms; i < this.mf; i++ ) {
+            for ( let j = this.ns; j < this.nf; j++ ) {
+                console.dir("Bounds: " + this.bounds[i][j] );
+            }
+        }
+    }
+
+    /**
+     *
+     * @param v
+     * @param u
+     * @param uplim
+     */
+    getTB ( v, u, uplim ) {
+
+        let t,b;
+        if (v > u) {
+            t = uplim;
+            while (t > 0 && this.contLevels[t] > v) t--;
+
+            b = 0;
+            while (b <= t && this.contLevels[b] <= u) b++;
+        } else {
+            t = uplim;
+            while (t > 0 && this.contLevels[t] > u) t--;
+
+            b = 0;
+            while (b <= t && this.contLevels[b] <= v) b++;
+        }
+
+        return { t:t, b:b }
     }
 
     /**
@@ -341,7 +338,7 @@ class Contour {
                     if (Math.abs(contourLevel - m2) <= this.delta)
                         m2 += ((m1 > m2) ? this.delta : -this.delta);
 
-                    if (Math.abs(m2 - m1) < MIN_FLOAT)
+                    if (Math.abs(m2 - m1) < Number.MIN_VALUE)
                         tt = 0.0;
                     else
                         tt = (contourLevel - m1) / (m2 - m1);
