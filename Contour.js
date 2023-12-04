@@ -106,6 +106,7 @@ class Contour {
     contLevels = [];        // float, contour limits
 
     // The constructor is currently unused
+    inRange;
 
     /**
      *
@@ -150,6 +151,7 @@ class Contour {
     /**
      *
      * @param array
+     * @param contInterval
      */
     setContLevels ( array, contInterval ) {
 
@@ -192,6 +194,8 @@ class Contour {
                 u = array[i][j];
 
                 if (j < (this.nf - 1)) {
+                    v = array[i][j+1];
+
                     //  Here we set the slope-sign for this horizontal segment.
                     //  We set it in terms of the X-direction vector which will intersect
                     //  this edge when the vector is going in the direction of increasing X. It
@@ -199,13 +203,15 @@ class Contour {
                     //  of decreasing X
                     bound.CW0 = (v < u) ? COUNTERCLOCKWISE : CLOCKWISE;
 
-                    let TB = this.getTB( array[i][j + 1], u, uplim);
+                    let TB = this.getTB( v, u, uplim);
 
                     bound.top0 = TB.t;
                     bound.bot0 = TB.b;
                 }
 
                 if (i < (this.mf - 1)) {
+                    v = array[i+1][j];
+
                     // Now we set the slope-sign for this vertical segment.  We set
                     // it for the vector that will intersect this edge when the
                     // vector is going in the direction of increasing Y. It will
@@ -213,7 +219,7 @@ class Contour {
                     // the direction of decreasing Y.
                     bound.CW1 = (v > u) ? COUNTERCLOCKWISE : CLOCKWISE;
 
-                    let TB = this.getTB( array[i + 1][j], u, uplim);
+                    let TB = this.getTB( v, u, uplim);
 
                     bound.top1 = TB.t;
                     bound.bot1 = TB.b;
@@ -229,6 +235,7 @@ class Contour {
     }
 
     /**
+     * Get the top and bottom contour limits relative to the current data point
      *
      * @param v
      * @param u
@@ -255,6 +262,7 @@ class Contour {
     }
 
     /**
+     * This threads a single contour level through the supplied data-set.
      *
      * @param array             the data array itself
      * @param contourNum        index of level of Contour
@@ -292,22 +300,11 @@ class Contour {
         let delt;
         let bound = null;
 
-        let contVec = new ContourVector();
+        let contVec = new ContourVector ();
+        let self = this;
 
         while (!bExit) {
-            bInRange = true;
-
-            x2 = x1 + xdirec[direc];
-
-            if (x2 < this.ns || x2 >= this.nf)
-                bInRange = false;
-            else {
-                /* Y - range OK */
-                y2 = y1 + ydirec[direc];
-
-                if (y2 < this.ms || y2 >= this.mf)
-                    bInRange = false;
-            }
+            bInRange = inRange();
 
             if (bInRange) {     	/* set xlmb,ylmb vars */
 
@@ -507,6 +504,28 @@ class Contour {
 
         }	// while
 
+        /**
+         * Checks if the current search-cell is in range
+         *
+         * @returns {boolean}
+         */
+        function inRange  () {
+            bInRange = false;
+
+            x2 = x1 + xdirec[direc];
+
+            if (x2 < self.ns || x2 >= self.nf)
+                bInRange = false;
+            else {
+                /* Y - range OK */
+                y2 = y1 + ydirec[direc];
+
+                if (y2 < self.ms || y2 >= self.mf)
+                    bInRange = false;
+            }
+
+            return bInRange;
+        }
     }
 
     /**
