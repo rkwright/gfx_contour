@@ -269,7 +269,7 @@ class Contour {
      * @param contourLevel      actual level of Contour
      * @return
      */
-    singleContour ( array,
+    threadContour ( array,
                     contourNum,
                     contourLevel ) {
 
@@ -351,7 +351,7 @@ class Contour {
                     contVec.y.push(v);
                     vecTop++;
 
-                    //conole.log(String.format("Found result: %d, %6.2f %6.2f for level: %6.2f", vecTop-1, u,v, contourLevel));
+                    conole.log(String.format("Found result: %d, %6.2f %6.2f for level: %6.2f", vecTop-1, u,v, contourLevel));
 
                     // if the first elm, then set the entry slope value.
                     // Note that we have to determine which direction we
@@ -510,21 +510,14 @@ class Contour {
          * @returns {boolean}
          */
         function inRange  () {
-            bInRange = false;
-
             x2 = x1 + xdirec[direc];
-
-            if (x2 < self.ns || x2 >= self.nf)
-                bInRange = false;
-            else {
-                /* Y - range OK */
+            if (x2 >= self.ns && x2 < self.nf) {
                 y2 = y1 + ydirec[direc];
-
-                if (y2 < self.ms || y2 >= self.mf)
-                    bInRange = false;
+                if (y2 >= self.ms && y2 < self.mf)
+                    return true;
             }
 
-            return bInRange;
+            return false
         }
     }
 
