@@ -105,20 +105,6 @@ class Contour {
     contourVectors = [];    // ContourVector
     contLevels = [];        // float, contour limits
 
-    // The constructor is currently unused
-    inRange;
-
-    /**
-     *
-     * @param array
-     * @param contLevel
-     */
-    threadContours ( array, contLevel ) {
-
-        console.log("Threading Contour. Array size: " + array.length +
-            "  contour level: " + contLevel.toFixed(1));
-    }
-
     /**
      *
      * @param array
@@ -134,16 +120,22 @@ class Contour {
      * @param array
      */
     allocBounds ( array ) {
-        this.mf = array.length;
-        this.nf = array[0].length;
         this.ns = 0;
         this.ms = 0;
+        this.mf = array.length;
+        this.nf = array[0].length;
+
+        this.minZ = Number.MAX_VALUE;
+        this.maxZ = -Number.MAX_VALUE;
 
         this.bounds = [];
         for ( let i = this.ms; i < this.mf; i++ ) {
             this.bounds[i] = [];
             for ( let j = this.ns; j < this.nf; j++ ) {
                 this.bounds[i][j] = new ContourLimit();
+
+                this.minZ = Math.min(this.minZ, array[i][j]);
+                this.maxZ = Math.max(this.maxZ, array[i][j]);
             }
         }
     }
@@ -154,18 +146,6 @@ class Contour {
      * @param contInterval
      */
     setContLevels ( array, contInterval ) {
-
-        // find max and min in the array
-        this.minZ = Number.MAX_VALUE;
-        this.maxZ = -Number.MAX_VALUE;
-
-        // Note: Need to compute minZ as func(contLevels) rather than absolute
-        for ( let i = this.ms; i < this.mf; i++ ) {
-            for ( let j = this.ns; j < this.nf; j++ ) {
-                this.minZ = Math.min(this.minZ, array[i][j]);
-                this.maxZ = Math.max(this.maxZ, array[i][j]);
-            }
-        }
 
         this.nCont = Math.ceil((this.maxZ - this.minZ) / contInterval);
 
@@ -187,8 +167,8 @@ class Contour {
         let u, v;
         let uplim = this.contLevels.length - 1;
 
-        for (let i = this.ms; i < this.mf; i++) {
-            for (let j = this.ns; j < this.nf; j++) {
+        for ( let i = this.ms; i < this.mf; i++ ) {
+            for ( let j = this.ns; j < this.nf; j++ ) {
                 let bound = this.bounds[i][j];
 
                 u = array[i][j];
@@ -227,9 +207,10 @@ class Contour {
             }
         }
 
+        // DEBUG: Dump contents of Bounds
         for ( let i = this.ms; i < this.mf; i++ ) {
             for ( let j = this.ns; j < this.nf; j++ ) {
-                console.dir("Bounds: " + this.bounds[i][j] );
+                console.log("i: " + i + " j: " + j + " Bounds: " + JSON.stringify(this.bounds[i][j] ));
             }
         }
     }
@@ -306,6 +287,8 @@ class Contour {
         while (!bExit) {
             bInRange = inRange();
 
+            console.log("bInRange: " + bInRange);
+
             if (bInRange) {     	/* set xlmb,ylmb vars */
 
                 bCont = false;
@@ -323,6 +306,8 @@ class Contour {
                     bound = this.bounds[ylmb][xlmb];
                     bCont = bound.bot0 === contourNum;
                 }
+
+                console.log("x1,y1: " + x1 + ", " + y1 + " x2,y2: " + x2 + ", " + y2 +  " bCont: " + bCont);
 
                 // if there is one, then find it
                 if (bCont) {
@@ -351,7 +336,8 @@ class Contour {
                     contVec.y.push(v);
                     vecTop++;
 
-                    conole.log(String.format("Found result: %d, %6.2f %6.2f for level: %6.2f", vecTop-1, u,v, contourLevel));
+                    console.warn("Found result: " + (vecTop-1) + " : " + u.toFixed(2) + "  " +
+                                                  v.toFixed(2) + " for level: " + contourLevel);
 
                     // if the first elm, then set the entry slope value.
                     // Note that we have to determine which direction we
@@ -360,10 +346,10 @@ class Contour {
                         if (lmb === HORIZONTAL)
                             ccwval = ((contVec.x[0] > 0) ? -bound.CW0 : bound.CW0);
                         else
-                            ccwval = ((contVec.y[0] > 0) ? -bound.CW1 : bound.CW1);
+                            ccwval = ((contVec.y[0] > 0) ? -bound.CW1 : bound.CW1)
 
                         contVec.stCW = ccwval;
-                        contVec.stEdge = this.FindEdge(contVec.x.get(0), contVec.y.get(0), xmax, ymax);
+                        contVec.stEdge = this.FindEdge(contVec.x[0], contVec.y[0], xmax, ymax);
                     }
 
                     ccwknt += ccwval;
@@ -394,11 +380,11 @@ class Contour {
                             //  be closed, so dup ends so curve closes
 
                             // save the point
-                            contVec.x.add(contVec.x.get(0));
-                            contVec.y.add(contVec.y.get(0));
+                            contVec.x.push(contVec.x[0]);
+                            contVec.y.push(contVec.y[0]);
                             vecTop++;
 
-                            //System.out.println(String.format("Closed cont, duped end: %d, %6.2f %6.2f", vecTop - 1, contVec.x.get(0), contVec.y.get(0)));
+                            console.log("Closed cont, duped end: " + (vecTop-1) + ": " + contVec.x[0] + " " + contVec.y[0]);
 
                             // signal that this is closed and set the direction flag
                             contVec.stCW = CLOSED;
@@ -438,7 +424,7 @@ class Contour {
 
                     contVec.finEdge = this.FindEdge(contVec.x[vecTop - 1], contVec.y[vecTop - 1], xmax, ymax);
 
-                    this.contourVectors.add(contVec);
+                    this.contourVectors.push(contVec);
 
                     vecTop = 0;
                     contVec = new ContourVector();
