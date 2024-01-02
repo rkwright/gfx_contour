@@ -42,10 +42,10 @@ const id = [ 2, 3, 0, 1 ];
  *
  */
 class ContourLimit {
-    top0 = MAX_LOOP_LIMIT;	 	// Contour limits for a given cell, limb 0
+    topX = MAX_LOOP_LIMIT;	 	// Contour limits for a given cell, limb 0
     bot0 = MAX_LOOP_LIMIT;
-    top1 = MAX_LOOP_LIMIT;
-    bot1 = MAX_LOOP_LIMIT;
+    topY = MAX_LOOP_LIMIT;
+    botY = MAX_LOOP_LIMIT;
     CW0  = CLOSED; 		   // sign of slope of limb intersected by vector
     CW1  = CLOSED;
 }
@@ -185,7 +185,7 @@ class Contour {
 
                     let TB = this.getTB( v, u, uplim);
 
-                    bound.top0 = TB.t;
+                    bound.topX = TB.t;
                     bound.bot0 = TB.b;
                 }
 
@@ -201,8 +201,8 @@ class Contour {
 
                     let TB = this.getTB( v, u, uplim);
 
-                    bound.top1 = TB.t;
-                    bound.bot1 = TB.b;
+                    bound.topY = TB.t;
+                    bound.botY = TB.b;
                 }
             }
         }
@@ -298,7 +298,7 @@ class Contour {
                     xlmb = x2;
                     ylmb = (y2 > y1) ? y1 : y2;
                     bound = this.bounds[ylmb][xlmb];
-                    bCont = bound.bot1 === contourNum;
+                    bCont = bound.botY === contourNum;
                 } else {
                     lmb = HORIZONTAL;
                     ylmb = y1;
@@ -356,14 +356,14 @@ class Contour {
 
                     // mark this seg as "used"
                     if (lmb !== HORIZONTAL) {
-                        bound.bot1++;
-                        if (bound.bot1 > bound.top1)
-                            bound.bot1 = MAX_LOOP_LIMIT;
+                        bound.botY++;
+                        if (bound.botY > bound.topY)
+                            bound.botY = MAX_LOOP_LIMIT;
                     } else {
-                        bound.bot0++;
+                        bound.botX++;
 
-                        if (bound.bot0 > bound.top0)
-                            bound.bot0 = MAX_LOOP_LIMIT;
+                        if (bound.botX > bound.topX)
+                            bound.botX = MAX_LOOP_LIMIT;
                     }
                 }
             }
@@ -384,7 +384,8 @@ class Contour {
                             contVec.y.push(contVec.y[0]);
                             vecTop++;
 
-                            console.log("Closed cont, duped end: " + (vecTop-1) + ": " + contVec.x[0] + " " + contVec.y[0]);
+                            console.log("Closed cont, duped end: " + (vecTop-1) + ": " + 
+                            				contVec.x[0] + " " + contVec.y[0]);
 
                             // signal that this is closed and set the direction flag
                             contVec.stCW = CLOSED;
