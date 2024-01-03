@@ -67,7 +67,7 @@ class ContourLimit {
  *
  *  Note on the slope parameter:  the parm represents the sign of the
  *  slope along the direction of travel for the vector, where it
- *  it intersects the edge:
+ *  intersects the edge:
  *		 not edge             = 0,
  *		 higher elev to right = +1  ->   clockwise
  *		 higher elev to left  = -1	->   counterclockwise
@@ -287,28 +287,24 @@ class Contour {
 
             console.log("bInRange: " + bInRange);
 
-            if (bInRange) {     	/* set xlmb,ylmb vars */
+            if (bInRange) {
 
                 bCont = checkCont();
 
-                if ( bCont ) {
+                if ( bCont )
                     findIntercept();
-                }
             }
 
-            if (!bStart) {
-                if (bInRange) {
-                    handleNav();
-                } else {
-                    handleEdge();
-                }
-            }     // end of if !bStart
-            else {
-
+            if (bStart) {
                 handleStart();
             }
-
-        }	// while !bExit
+            else {
+                if (bInRange)
+                    handleNav();
+                else
+                    handleEdge();
+            }
+        }
 
         /*--------- sub-functions ---------------------*/
         /**
@@ -367,7 +363,7 @@ class Contour {
                 tt = (contourLevel - m1) / (m2 - m1);
 
             if (Math.abs(tt) >= 1.0)
-                tt = (1.0 - self.delta) * self.fpsign(tt);
+                tt = (1.0 - self.delta) * self.fpSign(tt);
 
             u = (x2 - x1) * tt + x1;
             v = (y2 - y1) * tt + y1;
@@ -390,7 +386,7 @@ class Contour {
                     ccwval = ((contVec.y[0] > 0) ? -bound.CW1 : bound.CW1)
 
                 contVec.stCW = ccwval;
-                contVec.stEdge = self.FindEdge(contVec.x[0], contVec.y[0], xmax, ymax);
+                contVec.stEdge = self.findEdge(contVec.x[0], contVec.y[0], xmax, ymax);
             }
 
             ccwknt += ccwval;
@@ -398,11 +394,11 @@ class Contour {
             // mark this seg as "used"
             if (lmb === VERTICAL) {
                 bound.botX++;
-                if (bound.botX > bound.topX)
+                if (bound.botX > bound.topX)        // is this needed?
                     bound.botX = MAX_LOOP_LIMIT;
             } else {
                 bound.botY++;
-                if (bound.botY > bound.topY)
+                if (bound.botY > bound.topY)        // is this needed?
                     bound.botY = MAX_LOOP_LIMIT;
             }
         }
@@ -456,13 +452,15 @@ class Contour {
             }
         }
 
+        /**
+         *  We've reached the edge, so we need to figure out what the slope is
+         *  of the limb we are exiting through.
+         *  Note that we also have to determine which direction we are passing
+         *  through the limb.
+         *
+         */
         function handleEdge () {
-            //
-            //  We've reached the edge, so we need to figure out what
-            //  the slope is of the limb we are exiting through.
-            //  Note that we have to determine which direction we
-            //  we are passing through the limb.
-            //
+
             if (lmb === HORIZONTAL)
                 contVec.finCW = ((contVec.x[vecTop - 1] < contVec.x[vecTop - 2]) ?
                     -bound.CW0 : bound.CW0);
@@ -470,7 +468,7 @@ class Contour {
                 contVec.finCW = ((contVec.y[vecTop - 1] < contVec.y[vecTop - 2]) ?
                     -bound.CW1 : bound.CW1);
 
-            contVec.findEdge = self.FindEdge(contVec.x[vecTop - 1], contVec.y[vecTop - 1], xmax, ymax);
+            contVec.finEdge = self.findEdge(contVec.x[vecTop - 1], contVec.y[vecTop - 1], xmax, ymax);
 
             self.contourVectors.push(contVec);
 
@@ -490,52 +488,52 @@ class Contour {
         /**
          *
          */
-    function handleStart () {
-        if (bInRange) {
-            if (bCont) {
-                // found a contour, this is first cell, so
-                // save  current cell coords, direction
-
-                x0 = x1;
-                y0 = y1;
-                d0 = direc;
-                x1 = x2;
-                y1 = y2;
-                dt = direc;
-
-                bStart = false;
-
-                direc = nexd[direc];
-            } else {
-                x1 = x2;
-                y1 = y2;
-            }
-        } else {  /* out of range... */
-
-            if (bEdg) {
-                if (y2 < self.ms) {
-                    x1 = self.ns;
-                    y1 = self.ms + 1;
-                    direc = 0;
-                    bEdg = false;
-                } else
+        function handleStart () {
+            if (bInRange) {
+                if (bCont) {
+                    // found a contour, this is first cell, so
+                    // save  current cell coords, direction
+    
+                    x0 = x1;
+                    y0 = y1;
+                    d0 = direc;
+                    x1 = x2;
+                    y1 = y2;
+                    dt = direc;
+    
+                    bStart = false;
+    
                     direc = nexd[direc];
-            } else {
-                if (direc === 1) {
-                    y1 = self.ms;
-                    x1++;
-                    bExit = (x1 >= self.nf);
                 } else {
-                    y1++;
-                    x1 = self.ns;
-                    if (y1 >= self.mf) {
-                        x1 = self.ns + 1;
+                    x1 = x2;
+                    y1 = y2;
+                }
+            } else {  /* out of range... */
+    
+                if (bEdg) {
+                    if (y2 < self.ms) {
+                        x1 = self.ns;
+                        y1 = self.ms + 1;
+                        direc = 0;
+                        bEdg = false;
+                    } else
+                        direc = nexd[direc];
+                } else {
+                    if (direc === 1) {
                         y1 = self.ms;
-                        direc = 1;
+                        x1++;
+                        bExit = (x1 >= self.nf);
+                    } else {
+                        y1++;
+                        x1 = self.ns;
+                        if (y1 >= self.mf) {
+                            x1 = self.ns + 1;
+                            y1 = self.ms;
+                            direc = 1;
+                        }
                     }
                 }
             }
-        }
         }
         //---------------- end of sub-functions -----------------
     }
@@ -548,14 +546,14 @@ class Contour {
      * @param ymax
      * @return
      */
-    FindEdge ( x, y, xmax, ymax ) {
+    findEdge ( x, y, xmax, ymax ) {
         let edg = LEFT_EDGE;
 
-        if (this.fpnear(x, xmax))
+        if (this.fpNear(x, xmax))
             edg = RIGHT_EDGE;
-        else if (this.fpnear(y, ymax))
+        else if (this.fpNear(y, ymax))
             edg = TOP_EDGE;
-        else if (this.fpnear(y, 0))
+        else if (this.fpNear(y, 0))
             edg = BOTTOM_EDGE;
 
         return edg;
@@ -566,7 +564,7 @@ class Contour {
      * @param arg
      * @return
      */
-    fpsign(arg) {
+    fpSign(arg) {
         return (arg < 0.0) ? -1.0 : 1.0;
     }
 
@@ -576,7 +574,7 @@ class Contour {
      * @param b
      * @return
      */
-    fpnear(a, b) {
+    fpNear(a, b) {
         return (Math.abs(a - b) < EPSILON);
     }
 }
