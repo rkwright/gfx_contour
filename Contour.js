@@ -43,7 +43,7 @@ const id = [ 2, 3, 0, 1 ];
  */
 class ContourLimit {
     topX = MAX_LOOP_LIMIT;	 	// Contour limits for a given cell, limb 0
-    bot0 = MAX_LOOP_LIMIT;
+    botX = MAX_LOOP_LIMIT;
     topY = MAX_LOOP_LIMIT;
     botY = MAX_LOOP_LIMIT;
     CW0  = CLOSED; 		   // sign of slope of limb intersected by vector
@@ -163,7 +163,6 @@ class Contour {
      * @param array
      */
     initFlags ( array ) {
-        let t, b;
         let u, v;
         let uplim = this.contLevels.length - 1;
 
@@ -186,7 +185,7 @@ class Contour {
                     let TB = this.getTB( v, u, uplim);
 
                     bound.topX = TB.t;
-                    bound.bot0 = TB.b;
+                    bound.botX = TB.b;
                 }
 
                 if (i < (this.mf - 1)) {
@@ -278,7 +277,6 @@ class Contour {
         let m1, m2;
         let ccwknt = 0;
         let ccwval = 0;
-        let delt;
         let bound = null;
 
         let contVec = new ContourVector ();
@@ -304,7 +302,7 @@ class Contour {
                     ylmb = y1;
                     xlmb = (x2 > x1) ? x1 : x2;
                     bound = this.bounds[ylmb][xlmb];
-                    bCont = bound.bot0 === contourNum;
+                    bCont = bound.botX === contourNum;
                 }
 
                 console.log("x1,y1: " + x1 + ", " + y1 + " x2,y2: " + x2 + ", " + y2 +  " bCont: " + bCont);
