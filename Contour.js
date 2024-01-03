@@ -289,206 +289,28 @@ class Contour {
 
             if (bInRange) {     	/* set xlmb,ylmb vars */
 
-                bCont = false;
+                bCont = checkCont();
 
-                if (x1 === x2) {
-                    lmb = VERTICAL;
-                    xlmb = x2;
-                    ylmb = (y2 > y1) ? y1 : y2;
-                    bound = this.bounds[ylmb][xlmb];
-                    bCont = bound.botY === contourNum;
-                } else {
-                    lmb = HORIZONTAL;
-                    ylmb = y1;
-                    xlmb = (x2 > x1) ? x1 : x2;
-                    bound = this.bounds[ylmb][xlmb];
-                    bCont = bound.botX === contourNum;
-                }
-
-                console.log("x1,y1: " + x1 + ", " + y1 + " x2,y2: " + x2 + ", " + y2 +  " bCont: " + bCont);
-
-                // if there is one, then find it
-                if (bCont) {
-                    m1 = array[y1][x1];
-                    m2 = array[y2][x2];
-
-                    if (Math.abs(contourLevel - m1) <= this.delta)
-                        m1 += ((m2 > m1) ? this.delta : -this.delta);
-
-                    if (Math.abs(contourLevel - m2) <= this.delta)
-                        m2 += ((m1 > m2) ? this.delta : -this.delta);
-
-                    if (Math.abs(m2 - m1) < Number.MIN_VALUE)
-                        tt = 0.0;
-                    else
-                        tt = (contourLevel - m1) / (m2 - m1);
-
-                    if (Math.abs(tt) >= 1.0)
-                        tt = (1.0 - this.delta) * this.fpsign(tt);
-
-                    u = (x2 - x1) * tt + x1;
-                    v = (y2 - y1) * tt + y1;
-
-                    // store the result
-                    contVec.x.push(u);
-                    contVec.y.push(v);
-                    vecTop++;
-
-                    console.warn("Found result: " + (vecTop-1) + " : " + u.toFixed(2) + "  " +
-                                                  v.toFixed(2) + " for level: " + contourLevel);
-
-                    // if the first elm, then set the entry slope value.
-                    // Note that we have to determine which direction we
-                    // are passing through the limb.
-                    if (vecTop === 1) {
-                        if (lmb === HORIZONTAL)
-                            ccwval = ((contVec.x[0] > 0) ? -bound.CW0 : bound.CW0);
-                        else
-                            ccwval = ((contVec.y[0] > 0) ? -bound.CW1 : bound.CW1)
-
-                        contVec.stCW = ccwval;
-                        contVec.stEdge = this.FindEdge(contVec.x[0], contVec.y[0], xmax, ymax);
-                    }
-
-                    ccwknt += ccwval;
-
-                    // mark this seg as "used"
-                    if (lmb !== HORIZONTAL) {
-                        bound.botY++;
-                        if (bound.botY > bound.topY)
-                            bound.botY = MAX_LOOP_LIMIT;
-                    } else {
-                        bound.botX++;
-
-                        if (bound.botX > bound.topX)
-                            bound.botX = MAX_LOOP_LIMIT;
-                    }
+                if ( bCont ) {
+                    findIntercept();
                 }
             }
 
             if (!bStart) {
                 if (bInRange) {
-                    if (bCont) {
-                        dt = id[direc];
-                        direc = nsd[direc];
-                    } else {  /* no contours found... */
-                        direc = nexd[direc];
-                        if (direc === dt) {
-                            //  back going in same dir no contour found, it must
-                            //  be closed, so dup ends so curve closes
-
-                            // save the point
-                            contVec.x.push(contVec.x[0]);
-                            contVec.y.push(contVec.y[0]);
-                            vecTop++;
-
-                            console.log("Closed cont, duped end: " + (vecTop-1) + ": " + 
-                            				contVec.x[0] + " " + contVec.y[0]);
-
-                            // signal that this is closed and set the direction flag
-                            contVec.stCW = CLOSED;
-                            contVec.finCW = (ccwknt < 0) ? COUNTERCLOCKWISE : CLOCKWISE;
-                            ccwknt = 0;
-
-                            this.contourVectors.push(contVec);
-
-                            vecTop = 0;
-                            contVec = new ContourVector();
-
-                            // go back to where last Contour started and begin again
-                            direc = d0;
-                            x1 = x0 + xdirec[direc];
-                            y1 = y0 + ydirec[direc];
-                            bStart = true;
-
-                            contVec.finCW = CLOSED;
-                        } else {
-                            x1 = x2;
-                            y1 = y2;
-                        }
-                    }   //cont false
-                } else {  /* out of range... */
-                    /*
-                     *	We've reached the edge, so we need to figure out what
-                     *  the slope is of the limb we are exiting through.
-                     *  Note that we have to determine which direction we
-                     *  we are passing through the limb.
-                     */
-                    if (lmb === HORIZONTAL)
-                        contVec.finCW = ((contVec.x[vecTop - 1] < contVec.x[vecTop - 2]) ?
-                            -bound.CW0 : bound.CW0);
-                    else
-                        contVec.finCW = ((contVec.y[vecTop - 1] < contVec.y[vecTop - 2]) ?
-                            -bound.CW1 : bound.CW1);
-
-                    contVec.finEdge = this.FindEdge(contVec.x[vecTop - 1], contVec.y[vecTop - 1], xmax, ymax);
-
-                    this.contourVectors.push(contVec);
-
-                    vecTop = 0;
-                    contVec = new ContourVector();
-
-                    direc = d0;
-
-                    x1 = x0 + xdirec[direc];
-                    y1 = y0 + ydirec[direc];
-
-                    bStart = true;
-
-                    contVec.finCW = CLOSED;
+                    handleNav();
+                } else {
+                    handleEdge();
                 }
-            }     /* end of if !bStart */
+            }     // end of if !bStart
             else {
-                /* if bStart */
-                if (bInRange) {
-                    if (bCont) {
-                        // found a contour, this is first cell, so
-                        // save  current cell coords, direction
 
-                        x0 = x1;
-                        y0 = y1;
-                        d0 = direc;
-                        x1 = x2;
-                        y1 = y2;
-                        dt = direc;
+                handleStart();
+            }
 
-                        bStart = false;
+        }	// while !bExit
 
-                        direc = nexd[direc];
-                    } else {
-                        x1 = x2;
-                        y1 = y2;
-                    }
-                } else {  /* out of range... */
-
-                    if (bEdg) {
-                        if (y2 < this.ms) {
-                            x1 = this.ns;
-                            y1 = this.ms + 1;
-                            direc = 0;
-                            bEdg = false;
-                        } else
-                            direc = nexd[direc];
-                    } else {
-                        if (direc === 1) {
-                            y1 = this.ms;
-                            x1++;
-                            bExit = (x1 >= this.nf);
-                        } else {
-                            y1++;
-                            x1 = this.ns;
-                            if (y1 >= this.mf) {
-                                x1 = this.ns + 1;
-                                y1 = this.ms;
-                                direc = 1;
-                            }
-                        }
-                    }
-                }
-            }    // elseif bStart
-
-        }	// while
-
+        /*--------- sub-functions ---------------------*/
         /**
          * Checks if the current search-cell is in range
          *
@@ -504,6 +326,218 @@ class Contour {
 
             return false
         }
+
+        /**
+         * Check if the current cell-limbs intersect the current level
+         *
+         */
+        function checkCont () {
+            if (x1 === x2) {
+                lmb = VERTICAL;
+                xlmb = x2;
+                ylmb = (y2 > y1) ? y1 : y2;
+                bound = self.bounds[ylmb][xlmb];
+                return bound.botY === contourNum;
+            } else {
+                lmb = HORIZONTAL;
+                ylmb = y1;
+                xlmb = (x2 > x1) ? x1 : x2;
+                bound = self.bounds[ylmb][xlmb];
+                return bound.botX === contourNum;
+            }
+        }
+
+        /**
+         * Given the geometry, calculate the intercept
+         *
+         */
+        function findIntercept() {
+            m1 = array[y1][x1];
+            m2 = array[y2][x2];
+
+            if (Math.abs(contourLevel - m1) <= self.delta)
+                m1 += ((m2 > m1) ? this.delta : -self.delta);
+
+            if (Math.abs(contourLevel - m2) <= self.delta)
+                m2 += ((m1 > m2) ? this.delta : -self.delta);
+
+            if (Math.abs(m2 - m1) < Number.MIN_VALUE)
+                tt = 0.0;
+            else
+                tt = (contourLevel - m1) / (m2 - m1);
+
+            if (Math.abs(tt) >= 1.0)
+                tt = (1.0 - self.delta) * self.fpsign(tt);
+
+            u = (x2 - x1) * tt + x1;
+            v = (y2 - y1) * tt + y1;
+
+            // store the result
+            contVec.x.push(u);
+            contVec.y.push(v);
+            vecTop++;
+
+            console.warn("Found result: " + (vecTop-1) + " : " + u.toFixed(2) + "  " +
+                v.toFixed(2) + " for level: " + contourLevel);
+
+            // if the first elm, then set the entry slope value.
+            // Note that we have to determine which direction we
+            // are passing through the limb.
+            if (vecTop === 1) {
+                if (lmb === HORIZONTAL)
+                    ccwval = ((contVec.x[0] > 0) ? -bound.CW0 : bound.CW0);
+                else
+                    ccwval = ((contVec.y[0] > 0) ? -bound.CW1 : bound.CW1)
+
+                contVec.stCW = ccwval;
+                contVec.stEdge = self.FindEdge(contVec.x[0], contVec.y[0], xmax, ymax);
+            }
+
+            ccwknt += ccwval;
+
+            // mark this seg as "used"
+            if (lmb === VERTICAL) {
+                bound.botX++;
+                if (bound.botX > bound.topX)
+                    bound.botX = MAX_LOOP_LIMIT;
+            } else {
+                bound.botY++;
+                if (bound.botY > bound.topY)
+                    bound.botY = MAX_LOOP_LIMIT;
+            }
+        }
+
+        /**
+         * Update the navigation info
+         *
+         */
+        function handleNav () {
+
+            if (bInRange) {
+                if (bCont) {
+                    dt = id[direc];
+                    direc = nsd[direc];
+                } else {  /* no contours found... */
+                    direc = nexd[direc];
+                    if (direc === dt) {
+                        //  back going in same dir no contour found, it must
+                        //  be closed, so dup ends so curve closes
+
+                        // save the point
+                        contVec.x.push(contVec.x[0]);
+                        contVec.y.push(contVec.y[0]);
+                        vecTop++;
+
+                        console.log("Closed cont, duped end: " + (vecTop - 1) + ": " +
+                            contVec.x[0] + " " + contVec.y[0]);
+
+                        // signal that this is closed and set the direction flag
+                        contVec.stCW = CLOSED;
+                        contVec.finCW = (ccwknt < 0) ? COUNTERCLOCKWISE : CLOCKWISE;
+                        ccwknt = 0;
+
+                        self.contourVectors.push(contVec);
+
+                        vecTop = 0;
+                        contVec = new ContourVector();
+
+                        // go back to where last Contour started and begin again
+                        direc = d0;
+                        x1 = x0 + xdirec[direc];
+                        y1 = y0 + ydirec[direc];
+                        bStart = true;
+
+                        contVec.finCW = CLOSED;
+                    } else {
+                        x1 = x2;
+                        y1 = y2;
+                    }
+                }   //cont false
+            }
+        }
+
+        function handleEdge () {
+            //
+            //  We've reached the edge, so we need to figure out what
+            //  the slope is of the limb we are exiting through.
+            //  Note that we have to determine which direction we
+            //  we are passing through the limb.
+            //
+            if (lmb === HORIZONTAL)
+                contVec.finCW = ((contVec.x[vecTop - 1] < contVec.x[vecTop - 2]) ?
+                    -bound.CW0 : bound.CW0);
+            else
+                contVec.finCW = ((contVec.y[vecTop - 1] < contVec.y[vecTop - 2]) ?
+                    -bound.CW1 : bound.CW1);
+
+            contVec.findEdge = self.FindEdge(contVec.x[vecTop - 1], contVec.y[vecTop - 1], xmax, ymax);
+
+            self.contourVectors.push(contVec);
+
+            vecTop = 0;
+            contVec = new ContourVector();
+
+            direc = d0;
+
+            x1 = x0 + xdirec[direc];
+            y1 = y0 + ydirec[direc];
+
+            bStart = true;
+
+            contVec.finCW = CLOSED;
+        }
+
+        /**
+         *
+         */
+    function handleStart () {
+        if (bInRange) {
+            if (bCont) {
+                // found a contour, this is first cell, so
+                // save  current cell coords, direction
+
+                x0 = x1;
+                y0 = y1;
+                d0 = direc;
+                x1 = x2;
+                y1 = y2;
+                dt = direc;
+
+                bStart = false;
+
+                direc = nexd[direc];
+            } else {
+                x1 = x2;
+                y1 = y2;
+            }
+        } else {  /* out of range... */
+
+            if (bEdg) {
+                if (y2 < self.ms) {
+                    x1 = self.ns;
+                    y1 = self.ms + 1;
+                    direc = 0;
+                    bEdg = false;
+                } else
+                    direc = nexd[direc];
+            } else {
+                if (direc === 1) {
+                    y1 = self.ms;
+                    x1++;
+                    bExit = (x1 >= self.nf);
+                } else {
+                    y1++;
+                    x1 = self.ns;
+                    if (y1 >= self.mf) {
+                        x1 = self.ns + 1;
+                        y1 = self.ms;
+                        direc = 1;
+                    }
+                }
+            }
+        }
+        }
+        //---------------- end of sub-functions -----------------
     }
 
     /**
