@@ -27,15 +27,13 @@ const TOP_EDGE = 1;
 const RIGHT_EDGE = 2;
 const BOTTOM_EDGE = 3;
 
-//const TOP_BOT_EDGE = 1;		// if edg & this, then TOP or BOTTOM
-
 const EPSILON = 0.0005;
 
 const xdirec = [ 1, 0, -1, 0 ];
 const ydirec = [ 0, 1, 0, -1 ];
-const nexd = [ 1, 2, 3, 0 ];
-const nsd = [ 3, 0, 1, 2 ];
-const id = [ 2, 3, 0, 1 ];
+const nexd   = [ 1, 2, 3, 0 ];
+const nsd    = [ 3, 0, 1, 2 ];
+const id     = [ 2, 3, 0, 1 ];
 
 /**
  *
@@ -52,27 +50,6 @@ class ContourLimit {
 
 /**
  *
- *  This class defines the upper and lower limits of the contours for each
- *   cell, where
- *                              for a given cell, whose actual data point
- *                              is represented by the '*'
- *          l   +------+        limb = 1 is the left-side of the cell,
- *     ^    i   |      |        limb = 0 is the bottom of the cell
- *     |    m   |      |
- *   incr   b   |      |
- *     Y    1   *------+
- *               limb = 0
- *
- *           --> increasing x
- *
- *  Note on the slope parameter:  the parm represents the sign of the
- *  slope along the direction of travel for the vector, where it
- *  intersects the edge:
- *		 not edge             = 0,
- *		 higher elev to right = +1  ->   clockwise
- *		 higher elev to left  = -1	->   counterclockwise
- *
- *  hence if one goes clockwise, the higher elev will be encircled.
  */
 class ContourVector {
     x = [];  // coordinate arrays
@@ -90,7 +67,6 @@ class ContourVector {
  */
 class Contour {
 
-    //--- constants ---
     REVISION = '0.2.0';
 
     ns; 			// first index in X
@@ -101,9 +77,9 @@ class Contour {
     maxZ;
     nCont;			// number of contours to be found
 
-    bounds = [];            // contouring limits for each cell - ContourLimits
+    bounds         = [];    // contouring limits for each cell - ContourLimits
     contourVectors = [];    // ContourVector
-    contLevels = [];        // float, contour limits
+    contLevels     = [];    // float, contour limits
 
     /**
      *
@@ -285,8 +261,6 @@ class Contour {
         while (!bExit) {
             bInRange = inRange();
 
-            console.log("bInRange: " + bInRange);
-
             if (bInRange) {
 
                 bCont = checkCont();
@@ -295,15 +269,13 @@ class Contour {
                     findIntercept();
             }
 
-            if (bStart) {
+            if (bStart)
                 handleStart();
-            }
-            else {
+            else
                 if (bInRange)
                     handleNav();
                 else
                     handleEdge();
-            }
         }
 
         /*--------- sub-functions ---------------------*/
@@ -330,7 +302,7 @@ class Contour {
         function checkCont () {
             if (x1 === x2) {
                 lmb = VERTICAL;
-                xlmb = x2;
+                xlmb = x1;
                 ylmb = (y2 > y1) ? y1 : y2;
                 bound = self.bounds[ylmb][xlmb];
                 return bound.botY === contourNum;
@@ -348,14 +320,15 @@ class Contour {
          *
          */
         function findIntercept() {
-            m1 = array[y1][x1];
-            m2 = array[y2][x2];
+            let m1 = array[y1][x1];
+            let m2 = array[y2][x2];
+            let tt;
 
             if (Math.abs(contourLevel - m1) <= self.delta)
-                m1 += ((m2 > m1) ? this.delta : -self.delta);
+                m1 += ((m2 > m1) ? self.delta : -self.delta);
 
             if (Math.abs(contourLevel - m2) <= self.delta)
-                m2 += ((m1 > m2) ? this.delta : -self.delta);
+                m2 += ((m1 > m2) ? self.delta : -self.delta);
 
             if (Math.abs(m2 - m1) < Number.MIN_VALUE)
                 tt = 0.0;
