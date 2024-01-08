@@ -40,11 +40,11 @@ const id     = [ 2, 3, 0, 1 ];
  *
  */
 class ContourLimit {
-    topX = MAX_LOOP_LIMIT;	 	// Contour limits for a given cell, limb 0
+    topX = MAX_LOOP_LIMIT;	    // Contour limits for a given cell, limb 0, HORIZONTAL
     botX = MAX_LOOP_LIMIT;
-    topY = MAX_LOOP_LIMIT;
+    topY = MAX_LOOP_LIMIT;     // limb 1, VERTICAL
     botY = MAX_LOOP_LIMIT;
-    CW0  = CLOSED; 		   // sign of slope of limb intersected by vector
+    CW0  = CLOSED; 		    // sign of slope of limb intersected by vector
     CW1  = CLOSED;
 }
 
@@ -55,7 +55,6 @@ class ContourVector {
     x = [];  // coordinate arrays
     y = [];
 
-    elmKnt;         // number of elms in the coordinate array
     stCW; 			// sign of slope of start edge limb intersected by vector
     finCW; 			// sign of slope of finish edge limb intersected by vector
     stEdge; 		// edge number for start
@@ -285,13 +284,19 @@ class Contour {
          * @returns {boolean}
          */
         function inRange  () {
+            console.log("Next Edge: < " + x1 + ", " + y1 + " >  < " +
+                               (x1 + xdirec[direc]) + ", " + (y1 + ydirec[direc]) + " >" );
+
             x2 = x1 + xdirec[direc];
             if (x2 >= self.ns && x2 < self.nf) {
                 y2 = y1 + ydirec[direc];
-                if (y2 >= self.ms && y2 < self.mf)
+                if (y2 >= self.ms && y2 < self.mf) {
+                    console.log("True");
                     return true;
+                }
             }
 
+            console.log("False");
             return false
         }
 
@@ -331,7 +336,7 @@ class Contour {
                 m2 += ((m1 > m2) ? self.delta : -self.delta);
 
             if (Math.abs(m2 - m1) < Number.MIN_VALUE)
-                tt = 0.0;
+                tt = 0.0;   // clamp to zero? why?
             else
                 tt = (contourLevel - m1) / (m2 - m1);
 
@@ -365,15 +370,10 @@ class Contour {
             ccwknt += ccwval;
 
             // mark this seg as "used"
-            if (lmb === VERTICAL) {
-                bound.botX++;
-                if (bound.botX > bound.topX)        // is this needed?
-                    bound.botX = MAX_LOOP_LIMIT;
-            } else {
+            if (lmb === VERTICAL)
                 bound.botY++;
-                if (bound.botY > bound.topY)        // is this needed?
-                    bound.botY = MAX_LOOP_LIMIT;
-            }
+            else
+                bound.botX++;
         }
 
         /**
@@ -384,9 +384,12 @@ class Contour {
 
             if (bInRange) {
                 if (bCont) {
+
                     dt = id[direc];
                     direc = nsd[direc];
-                } else {  /* no contours found... */
+
+                } else {
+                            /* no contours found... */
                     direc = nexd[direc];
                     if (direc === dt) {
                         //  back going in same dir no contour found, it must
@@ -417,6 +420,7 @@ class Contour {
                         bStart = true;
 
                         contVec.finCW = CLOSED;
+
                     } else {
                         x1 = x2;
                         y1 = y2;
@@ -444,6 +448,11 @@ class Contour {
             contVec.finEdge = self.findEdge(contVec.x[vecTop - 1], contVec.y[vecTop - 1], xmax, ymax);
 
             self.contourVectors.push(contVec);
+
+            console.warn("Saved new path: ");
+            for ( let a=0; a<contVec.x.length; a++ ) {
+                console.warn(a + ": " + contVec.x[a] + ", " + contVec.y[a]);
+            }
 
             vecTop = 0;
             contVec = new ContourVector();
