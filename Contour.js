@@ -27,8 +27,6 @@ const TOP_EDGE = 1;
 const RIGHT_EDGE = 2;
 const BOTTOM_EDGE = 3;
 
-const EPSILON = 0.0005;
-
 const xdirec = [ 1, 0, -1, 0 ];
 const ydirec = [ 0, 1, 0, -1 ];
 const nexd   = [ 1, 2, 3, 0 ];
@@ -36,11 +34,11 @@ const nsd    = [ 3, 0, 1, 2 ];
 const id     = [ 2, 3, 0, 1 ];
 
 /**
- *
+ *  Contour limits for a given cell,
  *
  */
 class ContourLimit {
-    topX = MAX_LOOP_LIMIT;	    // Contour limits for a given cell, limb 0, HORIZONTAL
+    topX = MAX_LOOP_LIMIT;	    //  limb 0, HORIZONTAL
     botX = MAX_LOOP_LIMIT;
     topY = MAX_LOOP_LIMIT;     // limb 1, VERTICAL
     botY = MAX_LOOP_LIMIT;
@@ -52,13 +50,13 @@ class ContourLimit {
  *
  */
 class ContourVector {
-    x = [];  // coordinate arrays
+    x = [];     // coordinate arrays
     y = [];
 
-    stCW; 			// sign of slope of start edge limb intersected by vector
-    finCW; 			// sign of slope of finish edge limb intersected by vector
-    stEdge; 		// edge number for start
-    finEdge; 		// edge number for finish
+    stCW; 			   // sign of slope of start edge limb intersected by vector
+    finCW; 			   // sign of slope of finish edge limb intersected by vector
+    stEdge; 		   // edge number for start
+    finEdge; 		   // edge number for finish
 }
 
 /**
@@ -76,9 +74,9 @@ class Contour {
     maxZ;
     nCont;			// number of contours to be found
 
-    bounds         = [];    // contouring limits for each cell - ContourLimits
-    contourVectors = [];    // ContourVector
-    contLevels     = [];    // float, contour limits
+    bounds         = [];    // 2x2 contouring limits for each cell - ContourLimits
+    contourVectors = [];    // 1xN ContourVector
+    contLevels     = [];    // 1xnCont float, contour limits
 
     /**
      *
@@ -150,11 +148,7 @@ class Contour {
                 if (j < (this.nf - 1)) {
                     v = array[i][j+1];
 
-                    //  Here we set the slope-sign for this horizontal segment.
-                    //  We set it in terms of the X-direction vector which will intersect
-                    //  this edge when the vector is going in the direction of increasing X. It
-                    //  will have the opposite sign if the vector is going in the direction
-                    //  of decreasing X
+                    // set the "slope" paramater
                     bound.CW0 = (v < u) ? COUNTERCLOCKWISE : CLOCKWISE;
 
                     let TB = this.getTB( v, u, uplim);
@@ -166,11 +160,7 @@ class Contour {
                 if (i < (this.mf - 1)) {
                     v = array[i+1][j];
 
-                    // Now we set the slope-sign for this vertical segment.  We set
-                    // it for the vector that will intersect this edge when the
-                    // vector is going in the direction of increasing Y. It will
-                    // have the opposite sign if the vector is moving in
-                    // the direction of decreasing Y.
+                    // set the "slope" paramater
                     bound.CW1 = (v > u) ? COUNTERCLOCKWISE : CLOCKWISE;
 
                     let TB = this.getTB( v, u, uplim);
@@ -197,21 +187,13 @@ class Contour {
      * @param uplim
      */
     getTB ( v, u, uplim ) {
+        if (v > u) [v,u] = [u,v];
 
-        let t,b;
-        if (v > u) {
-            t = uplim;
-            while (t > 0 && this.contLevels[t] > v) t--;
+        let t = uplim;
+        while (t > 0 && this.contLevels[t] > u) t--;
 
-            b = 0;
-            while (b <= t && this.contLevels[b] <= u) b++;
-        } else {
-            t = uplim;
-            while (t > 0 && this.contLevels[t] > u) t--;
-
-            b = 0;
-            while (b <= t && this.contLevels[b] <= v) b++;
-        }
+        let b = 0;
+        while (b <= t && this.contLevels[b] <= v) b++;
 
         return { t:t, b:b }
     }
@@ -237,19 +219,12 @@ class Contour {
         let d0 = 0;
         let direc = 0;
         let lmb = 0;
-        let xmax = this.nf - 1.0;
-        let ymax = this.mf - 1.0;
-        let vecTop = 0;
         let x0 = 0;
         let x1 = this.ns;
         let x2 = 0;
-        let xlmb = 0;
         let y0 = 0;
         let y1 = this.ms;
         let y2 = 0;
-        let ylmb = 0;
-        let u, v, tt;
-        let m1, m2;
         let ccwknt = 0;
         let ccwval = 0;
         let bound = null;
@@ -265,7 +240,7 @@ class Contour {
                 bCont = checkCont();
 
                 if ( bCont )
-                    findIntercept();
+                    addNewPoint();
             }
 
             if (bStart)
@@ -305,6 +280,8 @@ class Contour {
          *
          */
         function checkCont () {
+            let xlmb,ylmb;
+
             if (x1 === x2) {
                 lmb = VERTICAL;
                 xlmb = x1;
@@ -324,7 +301,7 @@ class Contour {
          * Given the geometry, calculate the intercept
          *
          */
-        function findIntercept() {
+        function addNewPoint () {
             let m1 = array[y1][x1];
             let m2 = array[y2][x2];
             let tt;
@@ -336,35 +313,33 @@ class Contour {
                 m2 += ((m1 > m2) ? self.delta : -self.delta);
 
             if (Math.abs(m2 - m1) < Number.MIN_VALUE)
-                tt = 0.0;   // clamp to zero? why?
+                tt = 0.0;   // skip calculating to avoid divide-by-zero
             else
                 tt = (contourLevel - m1) / (m2 - m1);
 
             if (Math.abs(tt) >= 1.0)
-                tt = (1.0 - self.delta) * self.fpSign(tt);
+                tt = (1.0 - self.delta) * Math.fpSign(tt);
 
-            u = (x2 - x1) * tt + x1;
-            v = (y2 - y1) * tt + y1;
+            let u = (x2 - x1) * tt + x1;
+            let v = (y2 - y1) * tt + y1;
 
             // store the result
             contVec.x.push(u);
             contVec.y.push(v);
-            vecTop++;
 
-            console.warn("Found result: " + (vecTop-1) + " : " + u.toFixed(2) + "  " +
+            console.warn("Found result: " + (contVec.x.length-1) + " : " + u.toFixed(2) + "  " +
                 v.toFixed(2) + " for level: " + contourLevel);
 
-            // if the first elm, then set the entry slope value.
-            // Note that we have to determine which direction we
-            // are passing through the limb.
-            if (vecTop === 1) {
+            // if the first elm, then set the entry slope value. Note that we have to d
+            // etermine which direction we are passing through the limb.
+            if (contVec.x.length === 1) {
                 if (lmb === HORIZONTAL)
                     ccwval = ((contVec.x[0] > 0) ? -bound.CW0 : bound.CW0);
                 else
                     ccwval = ((contVec.y[0] > 0) ? -bound.CW1 : bound.CW1)
 
                 contVec.stCW = ccwval;
-                contVec.stEdge = self.findEdge(contVec.x[0], contVec.y[0], xmax, ymax);
+                //contVec.stEdge = findEdge(contVec.x[0], contVec.y[0], 2, 2);
             }
 
             ccwknt += ccwval;
@@ -382,51 +357,52 @@ class Contour {
          */
         function handleNav () {
 
-            if (bInRange) {
-                if (bCont) {
+             if (bCont) {
 
-                    dt = id[direc];
-                    direc = nsd[direc];
+                dt = id[direc];
+                direc = nsd[direc];
+
+            } else {
+                        /* no contours found... */
+                direc = nexd[direc];
+                if (direc === dt) {
+                    //  back going in same dir no contour found, it must
+                    //  be closed, so dup ends so curve closes
+
+                    contVec.x.push(contVec.x[0]);
+                    contVec.y.push(contVec.y[0]);
+
+                    console.warn("Closed cont, duped end: " + (contVec.x.length - 1) + ": " +
+                        contVec.x[0] + " " + contVec.y[0]);
+
+                    // signal that this is closed and set the direction flag
+                    contVec.stCW = CLOSED;
+                    contVec.finCW = (ccwknt < 0) ? COUNTERCLOCKWISE : CLOCKWISE;
+                    ccwknt = 0;
+
+                    self.contourVectors.push(contVec);
+
+                    contVec = newContVec();
 
                 } else {
-                            /* no contours found... */
-                    direc = nexd[direc];
-                    if (direc === dt) {
-                        //  back going in same dir no contour found, it must
-                        //  be closed, so dup ends so curve closes
-
-                        // save the point
-                        contVec.x.push(contVec.x[0]);
-                        contVec.y.push(contVec.y[0]);
-                        vecTop++;
-
-                        console.log("Closed cont, duped end: " + (vecTop - 1) + ": " +
-                            contVec.x[0] + " " + contVec.y[0]);
-
-                        // signal that this is closed and set the direction flag
-                        contVec.stCW = CLOSED;
-                        contVec.finCW = (ccwknt < 0) ? COUNTERCLOCKWISE : CLOCKWISE;
-                        ccwknt = 0;
-
-                        self.contourVectors.push(contVec);
-
-                        vecTop = 0;
-                        contVec = new ContourVector();
-
-                        // go back to where last Contour started and begin again
-                        direc = d0;
-                        x1 = x0 + xdirec[direc];
-                        y1 = y0 + ydirec[direc];
-                        bStart = true;
-
-                        contVec.finCW = CLOSED;
-
-                    } else {
-                        x1 = x2;
-                        y1 = y2;
-                    }
-                }   //cont false
+                    x1 = x2;
+                    y1 = y2;
+                }
             }
+        }
+
+        /**
+         * Set up a new ContVec
+         */
+        function newContVec() {
+            let cVec = new ContourVector();
+            direc = d0;
+            x1 = x0 + xdirec[direc];
+            y1 = y0 + ydirec[direc];
+            cVec.finCW = CLOSED;
+            bStart = true;
+
+            return cVec
         }
 
         /**
@@ -438,6 +414,7 @@ class Contour {
          */
         function handleEdge () {
 
+            let vecTop = contVec.x.length;
             if (lmb === HORIZONTAL)
                 contVec.finCW = ((contVec.x[vecTop - 1] < contVec.x[vecTop - 2]) ?
                     -bound.CW0 : bound.CW0);
@@ -445,26 +422,16 @@ class Contour {
                 contVec.finCW = ((contVec.y[vecTop - 1] < contVec.y[vecTop - 2]) ?
                     -bound.CW1 : bound.CW1);
 
-            contVec.finEdge = self.findEdge(contVec.x[vecTop - 1], contVec.y[vecTop - 1], xmax, ymax);
+            contVec.finEdge = findEdge(contVec.x[vecTop - 1], contVec.y[vecTop - 1], self.mf-1, self.nf-1);
 
             self.contourVectors.push(contVec);
 
             console.warn("Saved new path: ");
-            for ( let a=0; a<contVec.x.length; a++ ) {
+            for ( let a= 0; a<contVec.x.length; a++ ) {
                 console.warn(a + ": " + contVec.x[a] + ", " + contVec.y[a]);
             }
 
-            vecTop = 0;
-            contVec = new ContourVector();
-
-            direc = d0;
-
-            x1 = x0 + xdirec[direc];
-            y1 = y0 + ydirec[direc];
-
-            bStart = true;
-
-            contVec.finCW = CLOSED;
+            contVec = newContVec();
         }
 
         /**
@@ -473,9 +440,7 @@ class Contour {
         function handleStart () {
             if (bInRange) {
                 if (bCont) {
-                    // found a contour, this is first cell, so
-                    // save  current cell coords, direction
-    
+                    // found a contour, this is first cell, so save  current cell coords, direction
                     x0 = x1;
                     y0 = y1;
                     d0 = direc;
@@ -517,49 +482,28 @@ class Contour {
                 }
             }
         }
-        //---------------- end of sub-functions -----------------
-    }
 
-    /**
-     *
-     * @param x
-     * @param y
-     * @param xmax
-     * @param ymax
-     * @return
-     */
-    findEdge ( x, y, xmax, ymax ) {
-        let edg = LEFT_EDGE;
+        /**
+         *
+         * @param x
+         * @param y
+         * @param xmax
+         * @param ymax
+         * @returns {number}
+         */
+        function findEdge ( x, y, xmax, ymax ) {
+            let edg = LEFT_EDGE;
 
-        if (this.fpNear(x, xmax))
-            edg = RIGHT_EDGE;
-        else if (this.fpNear(y, ymax))
-            edg = TOP_EDGE;
-        else if (this.fpNear(y, 0))
-            edg = BOTTOM_EDGE;
+            if (Math.fpNear(x, xmax))
+                edg = RIGHT_EDGE;
+            else if (Math.fpNear(y, ymax))
+                edg = TOP_EDGE;
+            else if (Math.fpNear(y, 0))
+                edg = BOTTOM_EDGE;
 
-        return edg;
-    }
+            return edg;
+        }
 
-    /**
-     *
-     * @param arg
-     * @return
-     */
-    fpSign(arg) {
-        return (arg < 0.0) ? -1.0 : 1.0;
-    }
-
-    /**
-     *
-     * @param a
-     * @param b
-     * @return
-     */
-    fpNear(a, b) {
-        return (Math.abs(a - b) < EPSILON);
+        //---------------- end of sub-functions in ThreadContour -----------------
     }
 }
-
-
-
