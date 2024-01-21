@@ -38,9 +38,9 @@ const id     = [ 2, 3, 0, 1 ];
  *
  */
 class ContourLimit {
-    topX = MAX_LOOP_LIMIT;	    //  limb 0, HORIZONTAL
+    // topX = MAX_LOOP_LIMIT;	    //  limb 0, HORIZONTAL
     botX = MAX_LOOP_LIMIT;
-    topY = MAX_LOOP_LIMIT;     // limb 1, VERTICAL
+    // topY = MAX_LOOP_LIMIT;     // limb 1, VERTICAL
     botY = MAX_LOOP_LIMIT;
     CW0  = CLOSED; 		    // sign of slope of limb intersected by vector
     CW1  = CLOSED;
@@ -187,7 +187,8 @@ class Contour {
      * @param uplim
      */
     getTB ( v, u, uplim ) {
-        if (v > u) [v,u] = [u,v];
+
+        if (v > u) [v,u] = [u,v];  // swap members with JS trickery
 
         let t = uplim;
         while (t > 0 && this.contLevels[t] > u) t--;
@@ -287,13 +288,13 @@ class Contour {
                 xlmb = x1;
                 ylmb = (y2 > y1) ? y1 : y2;
                 bound = self.bounds[ylmb][xlmb];
-                return bound.botY === contourNum;
+                return  contourNum === bound.botY;
             } else {
                 lmb = HORIZONTAL;
                 ylmb = y1;
                 xlmb = (x2 > x1) ? x1 : x2;
                 bound = self.bounds[ylmb][xlmb];
-                return bound.botX === contourNum;
+                return contourNum === bound.botX;
             }
         }
 
@@ -306,6 +307,7 @@ class Contour {
             let m2 = array[y2][x2];
             let tt;
 
+            // skip some steps to avoid divide-by-zero problems
             if (Math.abs(contourLevel - m1) <= self.delta)
                 m1 += ((m2 > m1) ? self.delta : -self.delta);
 
@@ -313,13 +315,14 @@ class Contour {
                 m2 += ((m1 > m2) ? self.delta : -self.delta);
 
             if (Math.abs(m2 - m1) < Number.MIN_VALUE)
-                tt = 0.0;   // skip calculating to avoid divide-by-zero
+                tt = 0.0;
             else
                 tt = (contourLevel - m1) / (m2 - m1);
 
             if (Math.abs(tt) >= 1.0)
                 tt = (1.0 - self.delta) * Math.fpSign(tt);
 
+            // finally, calculate where the limb crosses the contour
             let u = (x2 - x1) * tt + x1;
             let v = (y2 - y1) * tt + y1;
 
@@ -339,7 +342,7 @@ class Contour {
                     ccwval = ((contVec.y[0] > 0) ? -bound.CW1 : bound.CW1)
 
                 contVec.stCW = ccwval;
-                //contVec.stEdge = findEdge(contVec.x[0], contVec.y[0], 2, 2);
+                contVec.stEdge = findEdge(contVec.x[0], contVec.y[0], 2, 2);
             }
 
             ccwknt += ccwval;
@@ -368,12 +371,11 @@ class Contour {
                 if (direc === dt) {
                     //  back going in same dir no contour found, it must
                     //  be closed, so dup ends so curve closes
+                    console.warn("Closed cont, duped end: " + (contVec.x.length - 1) + ": " +
+                                             contVec.x[0] + " " + contVec.y[0]);
 
                     contVec.x.push(contVec.x[0]);
                     contVec.y.push(contVec.y[0]);
-
-                    console.warn("Closed cont, duped end: " + (contVec.x.length - 1) + ": " +
-                        contVec.x[0] + " " + contVec.y[0]);
 
                     // signal that this is closed and set the direction flag
                     contVec.stCW = CLOSED;
@@ -438,46 +440,44 @@ class Contour {
          *
          */
         function handleStart () {
-            if (bInRange) {
-                if (bCont) {
-                    // found a contour, this is first cell, so save  current cell coords, direction
-                    x0 = x1;
-                    y0 = y1;
-                    d0 = direc;
-                    x1 = x2;
-                    y1 = y2;
-                    dt = direc;
-    
-                    bStart = false;
-    
+            if (bCont) {
+                // found a contour, this is first cell, so save  current cell coords, direction
+                x0 = x1;
+                y0 = y1;
+                d0 = direc;
+                x1 = x2;
+                y1 = y2;
+                dt = direc;
+
+                bStart = false;
+
+                direc = nexd[direc];
+            } else {
+                x1 = x2;
+                y1 = y2;
+            }
+
+            if (bEdg) {
+                if (y2 < self.ms) {
+                    x1 = self.ns;
+                    y1 = self.ms + 1;
+                    direc = 0;
+                    bEdg = false;
+                } else
                     direc = nexd[direc];
+
+            } else {
+                if (direc === 1) {
+                    y1 = self.ms;
+                    x1++;
+                    bExit = (x1 >= self.nf);
                 } else {
-                    x1 = x2;
-                    y1 = y2;
-                }
-            } else {  /* out of range... */
-    
-                if (bEdg) {
-                    if (y2 < self.ms) {
-                        x1 = self.ns;
-                        y1 = self.ms + 1;
-                        direc = 0;
-                        bEdg = false;
-                    } else
-                        direc = nexd[direc];
-                } else {
-                    if (direc === 1) {
+                    y1++;
+                    x1 = self.ns;
+                    if (y1 >= self.mf) {
+                        x1 = self.ns + 1;
                         y1 = self.ms;
-                        x1++;
-                        bExit = (x1 >= self.nf);
-                    } else {
-                        y1++;
-                        x1 = self.ns;
-                        if (y1 >= self.mf) {
-                            x1 = self.ns + 1;
-                            y1 = self.ms;
-                            direc = 1;
-                        }
+                        direc = 1;
                     }
                 }
             }
