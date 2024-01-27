@@ -1,5 +1,5 @@
 /**-
- * Copyright (c) 1986-2023 Richard K. Wright. All rights reserved.
+ * Copyright (c) 1986-2024 Richard K. Wright. All rights reserved.
  *
  * This work is licensed under the terms of the MIT license.
  * For a copy, see <https://opensource.org/licenses/MIT>.
@@ -9,39 +9,40 @@
  */
 
 'use strict';
+// const REVISION = '0.2.0';
 
 //--- Contour class constants ---
 const DELTA_DIV = 10000;
 
-const CLOCKWISE = 1
-const CLOSED = 0;
+const CLOCKWISE        = 1
+const CLOSED           = 0;
 const COUNTERCLOCKWISE = -1;
 
 const MAX_LOOP_LIMIT = 255;
 
 const HORIZONTAL = 0;
-const VERTICAL = 1;
+const VERTICAL   = 1;
 
-const LEFT_EDGE = 0;
-const TOP_EDGE = 1;
+const LEFT_EDGE  = 0;
+const TOP_EDGE   = 1;
 const RIGHT_EDGE = 2;
-const BOTTOM_EDGE = 3;
+const BOTTOM_EDGE= 3;
 
-const xdirec = [ 1, 0, -1, 0 ];
-const ydirec = [ 0, 1, 0, -1 ];
-const nexd   = [ 1, 2, 3, 0 ];
-const nsd    = [ 3, 0, 1, 2 ];
-const id     = [ 2, 3, 0, 1 ];
+const xdirec = [ 1, 0, -1,  0 ];
+const ydirec = [ 0, 1,  0, -1 ];
+const nexd   = [ 1, 2,  3,  0 ];
+const nsd    = [ 3, 0,  1,  2 ];
+const id     = [ 2, 3,  0,  1 ];
 
 /**
  *  Contour limits for a given cell,
  *
  */
 class ContourLimit {
-    // topX = MAX_LOOP_LIMIT;	    //  limb 0, HORIZONTAL
-    botX = MAX_LOOP_LIMIT;
-    // topY = MAX_LOOP_LIMIT;     // limb 1, VERTICAL
-    botY = MAX_LOOP_LIMIT;
+
+    botX = MAX_LOOP_LIMIT;     //  limb 0, HORIZONTAL
+    botY = MAX_LOOP_LIMIT;     // limb 1, VERTICAL
+
     CW0  = CLOSED; 		    // sign of slope of limb intersected by vector
     CW1  = CLOSED;
 }
@@ -63,8 +64,6 @@ class ContourVector {
  *
  */
 class Contour {
-
-    REVISION = '0.2.0';
 
     ns; 			// first index in X
     nf; 			// last index in X
@@ -482,6 +481,9 @@ class Contour {
                 }
             }
         }
+
+
+
 
         /**
          *
