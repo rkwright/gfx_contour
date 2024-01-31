@@ -88,6 +88,7 @@ class Contour {
     }
 
     /**
+     * Allocate the bounds array used by the seatch algorithm
      *
      * @param array
      */
