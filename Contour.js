@@ -18,7 +18,7 @@ const CLOCKWISE        = 1
 const CLOSED           = 0;
 const COUNTERCLOCKWISE = -1;
 
-const MAX_LOOP_LIMIT = 255;
+const MAX_NUM_CONTOUR = 255;
 
 const HORIZONTAL = 0;
 const VERTICAL   = 1;
@@ -40,8 +40,8 @@ const id     = [ 2, 3,  0,  1 ];
  */
 class ContourLimit {
 
-    botX = MAX_LOOP_LIMIT;     //  limb 0, HORIZONTAL
-    botY = MAX_LOOP_LIMIT;     // limb 1, VERTICAL
+    botX = MAX_NUM_CONTOUR;     // limb 0, HORIZONTAL
+    botY = MAX_NUM_CONTOUR;     // limb 1, VERTICAL
 
     CW0  = CLOSED; 		    // sign of slope of limb intersected by vector
     CW1  = CLOSED;
@@ -71,7 +71,6 @@ class Contour {
     mf; 			// last index in Y
     minZ;
     maxZ;
-    nCont;			// number of contours to be found
 
     bounds         = [];    // 2x2 contouring limits for each cell - ContourLimits
     contourVectors = [];    // 1xN ContourVector
@@ -80,10 +79,11 @@ class Contour {
     /**
      *
      * @param array
+     * @param contInterval
      */
-    setupContours( array ) {
+    setupContours( array, contInterval ) {
        this.allocBounds ( array );
-       this.setContLevels( array, 2.0 );
+       this.setContLevels( array, contInterval );
        this.initFlags( array );
     }
 
@@ -202,13 +202,13 @@ class Contour {
      * This threads a single contour level through the supplied data-set.
      *
      * @param array             the data array itself
-     * @param contourNum        index of level of Contour
-     * @param contourLevel      actual level of Contour
+     * @param contourIndex      index of level of Contour
+     * @param contourValue      actual levels of Contour
      * @return
      */
     threadContour ( array,
-                    contourNum,
-                    contourLevel ) {
+                    contourIndex,
+                    contourValue ) {
 
         let bExit = false;
         let bStart = true;
@@ -287,13 +287,13 @@ class Contour {
                 xlmb = x1;
                 ylmb = (y2 > y1) ? y1 : y2;
                 bound = self.bounds[ylmb][xlmb];
-                return  contourNum === bound.botY;
+                return  contourIndex === bound.botY;
             } else {
                 lmb = HORIZONTAL;
                 ylmb = y1;
                 xlmb = (x2 > x1) ? x1 : x2;
                 bound = self.bounds[ylmb][xlmb];
-                return contourNum === bound.botX;
+                return contourIndex === bound.botX;
             }
         }
 
@@ -307,16 +307,16 @@ class Contour {
             let tt;
 
             // skip some steps to avoid divide-by-zero problems
-            if (Math.abs(contourLevel - m1) <= self.delta)
+            if (Math.abs(contourValue - m1) <= self.delta)
                 m1 += ((m2 > m1) ? self.delta : -self.delta);
 
-            if (Math.abs(contourLevel - m2) <= self.delta)
+            if (Math.abs(contourValue - m2) <= self.delta)
                 m2 += ((m1 > m2) ? self.delta : -self.delta);
 
             if (Math.abs(m2 - m1) < Number.MIN_VALUE)
                 tt = 0.0;
             else
-                tt = (contourLevel - m1) / (m2 - m1);
+                tt = (contourValue - m1) / (m2 - m1);
 
             if (Math.abs(tt) >= 1.0)
                 tt = (1.0 - self.delta) * Math.fpSign(tt);
@@ -330,7 +330,7 @@ class Contour {
             contVec.y.push(v);
 
             console.warn("Found result: " + (contVec.x.length-1) + " : " + u.toFixed(2) + "  " +
-                v.toFixed(2) + " for level: " + contourLevel);
+                v.toFixed(2) + " for level: " + contourValue);
 
             // if the first elm, then set the entry slope value. Note that we have to d
             // etermine which direction we are passing through the limb.
@@ -427,10 +427,7 @@ class Contour {
 
             self.contourVectors.push(contVec);
 
-            console.warn("Saved new path: ");
-            for ( let a= 0; a<contVec.x.length; a++ ) {
-                console.warn(a + ": " + contVec.x[a] + ", " + contVec.y[a]);
-            }
+            dumpPath();
 
             contVec = newContVec();
         }
@@ -482,9 +479,6 @@ class Contour {
             }
         }
 
-
-
-
         /**
          *
          * @param x
@@ -504,6 +498,16 @@ class Contour {
                 edg = BOTTOM_EDGE;
 
             return edg;
+        }
+
+        /**
+         *
+         */
+        function dumpPath() {
+            console.warn("Saved new path: ");
+            for ( let a= 0; a<contVec.x.length; a++ ) {
+                console.warn(a + ": " + contVec.x[a] + ", " + contVec.y[a]);
+            }
         }
 
         //---------------- end of sub-functions in ThreadContour -----------------
